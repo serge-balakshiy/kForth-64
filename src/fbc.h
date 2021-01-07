@@ -420,5 +420,8 @@
 #define OP_MSLASH_FLOORED       415
 #define OP_MSTARSLASH_FLOORED   416
 
+#define OP_KF64PRIVET		417
+#define OP_GPRIVET		418
+#define OP_GLLSHOW		419
 
 #endif

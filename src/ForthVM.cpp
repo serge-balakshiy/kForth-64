@@ -307,7 +307,7 @@ int Vocabulary::Initialize( WordTemplate wt[], int n )
    {
      pNewWord = new WordListEntry;   
      strcpy(pNewWord->WordName, wt[i].WordName);
-     wcode = wt[i].WordCode;
+     wcode = wt[i].WordCode; // OP_CODE from  ForthTemplate ForthWords[] file ForthWords.h
      pNewWord->WordCode = wcode;
      pNewWord->Precedence = wt[i].Precedence;
      pNewWord->Cfa = new byte[WSIZE+2];
@@ -315,11 +315,11 @@ int Vocabulary::Initialize( WordTemplate wt[], int n )
      byte* bp = (byte*) pNewWord->Cfa;
      if (wcode >> 8) {
        bp[0] = OP_CALLADDR;
-       *((long int*) (bp+1)) = (long int) JumpTable[wcode];
+       *((long int*) (bp+1)) = (long int) JumpTable[wcode]; //addr of function from JampTable
        bp[WSIZE+1] = OP_RET;
      }
      else {
-       bp[0] = wcode;
+       bp[0] = wcode; //OP_CODE
        bp[1] = OP_RET;
      }
 	
@@ -2868,6 +2868,11 @@ int CPP_rpstore()
 #ifndef __FAST__
     GlobalRtp = ForthReturnTypeStack + n;
 #endif
+    return 0;
+}
+
+int CPP_kf64privet(){
+    cout << "Privet from kf64" << endl;
     return 0;
 }
 

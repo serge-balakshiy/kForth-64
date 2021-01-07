@@ -384,5 +384,8 @@ WordTemplate ForthWords[] =
     { "D>F",       OP_DTOF,         0 },
     { "F>D",       OP_FTOD,         0 },
     { "FROUND>S",  OP_FROUNDTOS,    0 },
-    { "FTRUNC>S",  OP_FTRUNCTOS,    0 }
+    { "FTRUNC>S",  OP_FTRUNCTOS,    0 },
+    { "KF64PRIVET",    OP_KF64PRIVET,       0 },
+    { "GPRIVET", OP_GPRIVET, 0 },
+    { "SHOW",  OP_GLLSHOW, 0 }
 };
