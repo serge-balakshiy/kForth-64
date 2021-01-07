@@ -1,0 +1,155 @@
+
+<2021-01-05 Вт>
+Теперь сделаю функцию show()
+
+<2021-01-04 Пн>
+Похоже, чтослова втраиваются следующим образом.
+Например слово postpone
+Его объявление в 
+ForthVM.h
+Реализация в 
+ForthVM.cpp
+Далее создается OP_CODE  с именем слова и ему присваивается номер 
+#define OP_POSTPONE 272
+в файле fbc.h
+А в файле 
+ForthWords.h создается запись в таблице 
+{ "POSTPONE", OP_POSTPONE,  IMMEDIATE },
+Потом пристарте вызывается OpenForth(),  в которой происходит инициализация словарей. тоексть вызывается ::Initialize(), которая в свою очередь вызывает конструктор 
+new ForthListEntry и далее происходит присваивание значений.
+Имя слова берется из WorsTemplate. WordName
+Оттуда же берется OP_CODE (OP_POSTPONE) and Precendence
+Далее
+int Vocabulary::Initialize( WordTemplate wt[], int n )
+{
+   int i, wcode;
+
+   for (i = 0; i < n; i++)
+   {
+     pNewWord = new WordListEntry;...
+     strcpy(pNewWord->WordName, wt[i].WordName);
+     wcode = wt[i].WordCode; // OP_CODE from  ForthTemplate ForthWords[] file ForthWords.h
+     pNewWord->WordCode = wcode;
+     pNewWord->Precedence = wt[i].Precedence;
+     pNewWord->Cfa = new byte[WSIZE+2];
+     pNewWord->Pfa = NULL;
+     byte* bp = (byte*) pNewWord->Cfa;
+     if (wcode >> 8) {
+       bp[0] = OP_CALLADDR;
+       *((long int*) (bp+1)) = (long int) JumpTable[wcode]; //addr of function from JampTable
+       bp[WSIZE+1] = OP_RET;
+     }
+     else {
+       bp[0] = wcode; //OP_CODE
+       bp[1] = OP_RET;
+     }
+     push_back(pNewWord);
+   }
+   return 0;
+}
+
+Таким образом, чтобы создать своё слово я должен 
+- объявить функцию
+- Создать её реализацию
+- Присвоить ей очередной OP_CODE
+- Разместить имя функции, её OP_CODE and Precedence в таблице WordsTemplate
+- Разместить имя функции (её адрес) в таблице JampTable на порядковом месте, соответствующем её OP_CODE
+Тогда при инициализации функция получит слово в форте и его можно будет использовать в скриптах.
+
+Надо до конца проверить идею как добавить слово-функцию. Просто свтроить новое слово kforth64-privet в сам kForth64
+
+Так и сделал.
+В ForthVM.h объявил int CPP_fk64privet();
+В ForthVM.cpp сдела реализацию 
+int CPP_fk64privet(){
+cout "Privet from FK64" << endl;
+return 0;
+}
+
+В fbc.h определил OP_CODE
+#define OP_KF64PRIVET 417
+В vm64-common.s добавил
+.quad L_nop, CPP_kf64privet, L_nop, L_nop # 416--419
+In ForthWodrs.h 
+{ "KF64PRIVET", OP_KF64PRIVET, 0 }
+ И это заработало.
+
+Добавил функцию int CPP_gprivet() in wxkforth64.cpp
+и далее по той же схеме.
+Заработало.
+
+<2021-01-01 Пт>
+Заработал kForth64 в составе Golly.
+Это хорошая новость. Теперь следующая задача внедрить в kforth64 функции, которые будут связывать Golly и kForth54.
+
+В ForthCompiler.h определена структура 
+struct WordTemplate
+{
+    const char* WordName;
+    word WordCode;
+    byte Precedence;
+};
+and
+struct WordListEntry
+{
+  char WordName[128];
+  word WordCode;
+  byte Precedence;
+  void* Cfa;
+  void* Pfa;
+};
+А также два класса
+class WordList : public vector<WordListEntry*> 
+{
+public:
+   WordListEntry* GetFromName( char* );
+   WordListEntry* GetFromCfa( void* );
+   void RemoveLastWord( void );
+};
+
+class Vocabulary : public WordList
+{
+public:
+   const char* Name;
+   Vocabulary (const char* );
+   int Initialize (WordTemplate [], int);
+};
+
+
+
+<2020-12-31 Чт>
+Теперь попробую запустить kForth64 непосредственно в golly
+
+Для того, чтобы слинковать пришлось убрать из libkforth64.a файл vm64-common.o
+Иначе, была ошибка линковщика повторное определение JumpTable и других.
+
+Запустил обработку скрипта. 
+Надо еще добавить две переменных для VERSION and BUILD_DATE.
+Это надо сделать через Makefile.
+Кроме этого надо придумать как написать в Makefile.am чтобы файл vm64-common.s не включался бы в библиотеку libkforth64.a
+Сейчас я просто удаляю из Makefile строку с этим файлом.
+nodist_libkforth64_a_OBJECTS =  \
+	../../kForth-64/src/libkforth64_a-ForthCompiler.$(OBJEXT) \
+	../../kForth-64/src/libkforth64_a-ForthVM.$(OBJEXT) \
+	../../kForth-64/src/vm64.$(OBJEXT) \
+	../../kForth-64/src/libkforth64_a-vmc.$(OBJEXT)
+
+#	../../kForth-64/src/vm64-common.$(OBJEXT) \
+
+Кроме того, необходимо убирать из списка source файл kforth.cpp
+Просто преобразовываю его в kforth.tar.gz
+<2020-12-25 Пт>
+Приступил к встраиванию kForth-64  в golly
+Создал каталог с kForth-64
+Создал в нем файд mylibMakefile для того, чтобы скомпилировать и собрать как сам kforth64 так и библиотеку libkforth64.a
+Внес изменения в golly/gui-wx/configure/autogen.sh, golly/gui-wx/configure/compile, Makefile.am
+Переименовал (скопировал) файл mylibMakefile  в Makefile
+
+Теперь надо создать в gui-wx фалы wxkforth64.cpp, wxkforth64.h
+
+Это сделано.
+
+
+Внес исправления в Makefile.am,  configure.ac
+Для того, чтобы kForth64 мог компилироваться и собираться вместе с golly.
+
