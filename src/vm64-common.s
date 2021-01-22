@@ -140,6 +140,9 @@ JumpTable: .quad L_false, L_true, L_cells, L_cellplus # 0 -- 3
            .quad L_lstore, L_nop, L_nop, L_nop                  # 408--411
 	   .quad L_lstore, L_nop, L_nop, L_nop                  # 412--415
 	   .quad L_nop, CPP_kf64privet, CPP_gprivet, CPP_gllshow   # 416--419
+	   .quad CPP_G_kf64rotate, CPP_G_kf64update, CPP_G_kf64getcell, CPP_G_kf64setcell # 420--423
+	   .quad CPP_G_kf64getcursor, CPP_G_kf64getevent, CPP_G_kf64getxy, L_nop # 424--427
+	   .quad L_nop, L_nop, L_nop, L_nop # 428--431
 .text
 	.align WSIZE
 .global JumpTable

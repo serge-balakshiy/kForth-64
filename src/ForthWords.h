@@ -387,5 +387,12 @@ WordTemplate ForthWords[] =
     { "FTRUNC>S",  OP_FTRUNCTOS,    0 },
     { "KF64PRIVET",    OP_KF64PRIVET,       0 },
     { "GPRIVET", OP_GPRIVET, 0 },
-    { "SHOW",  OP_GLLSHOW, 0 }
+    { "SHOW",  OP_GLLSHOW, 0 },
+    { "ROTATE", OP_CPP_G_KF64ROTATE, 0 },
+    { "UPDATE", OP_CPP_G_KF64UPDATE, 0 },
+    { "GETCELL", OP_CPP_G_KF64GETCELL, 0 },
+    { "SETCELL", OP_CPP_G_KF64SETCELL, 0 },
+    { "GETCURSOR", OP_CPP_G_KF64GETCURSOR, 0 },
+    { "GETEVENT", OP_CPP_G_KF64GETEVENT, 0 },
+    { "GETXY", OP_CPP_G_KF64GETXY, 0 }
 };
