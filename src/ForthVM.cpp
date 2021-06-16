@@ -20,6 +20,35 @@ const char* dir_env_var=DIR_ENV_VAR;
 #include <fstream>
 #include <sstream>
 #include <vector>
+
+#include <boost/graph/fruchterman_reingold.hpp>
+#include <boost/graph/random_layout.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/topology.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/graph/vector_as_graph.hpp>
+#include <boost/graph/graph_utility.hpp>
+
+#include <string>
+#include <map>
+//#include <vector>
+#include <boost/random/linear_congruential.hpp>
+#include <boost/progress.hpp>
+
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/graph/graphviz.hpp>
+#include <list>
+//#include <iostream>
+#include <cstdlib>
+#include <memory>
+//#include <iostream>
+
+#include "tst-graph-00.h"
+
+
+//#include <list>
+
 using namespace std;
 
 #include "fbc.h"
@@ -31,7 +60,7 @@ using namespace std;
 #define STACK_SIZE 32768
 #define RETURN_STACK_SIZE 4096
 
-extern bool debug;
+extern bool debug; // = true;
 
 // Provided by ForthCompiler.cpp
 
@@ -302,7 +331,7 @@ Vocabulary::Vocabulary( const char* name )
 int Vocabulary::Initialize( WordTemplate wt[], int n )
 {
    int i, wcode;
-
+std::cout << "Initialize: n=" << n << std::endl;
    for (i = 0; i < n; i++)
    {
      pNewWord = new WordListEntry;   
@@ -313,6 +342,7 @@ int Vocabulary::Initialize( WordTemplate wt[], int n )
      pNewWord->Cfa = new byte[WSIZE+2];
      pNewWord->Pfa = NULL;
      byte* bp = (byte*) pNewWord->Cfa;
+std::cout << i << ", " << "name=" << wt[i].WordName << ", code=" << wt[i].WordCode << std::endl;
      if (wcode >> 8) {
        bp[0] = OP_CALLADDR;
        *((long int*) (bp+1)) = (long int) JumpTable[wcode]; //addr of function from JampTable
@@ -654,11 +684,930 @@ if (debug)  cout << "<ForthVM Sp: " << GlobalSp << " Rp: " << GlobalRp <<
   return ecode;
 }
 //---------------------------------------------------------------
+// The following two classes are designed to work with boost graph
+class CObjHolder {
+    std::unique_ptr<CObj> pobj;
+public:
+    template<typename T>
+    CObjHolder(const T& obj) {
+        pobj = std::make_unique<T>(obj);
+    }
+    const CObj& operator*() const {
+        return *pobj;
+    }
+    CObj& operator*() {
+        return *pobj;
+    }
+    const CObj* operator->() const {
+        return pobj.get();
+    }
+    CObj* operator->() {
+        return pobj.get();
+    }
+};
 
+class CObjShelter{
+public:
+  int _count_id;
+  std::vector<CObjHolder> vec;
+};
+
+//---------------------------------------------------------------
 // Use C linkage for all of the VM functions
 
 extern "C" {
+CObjShelter s = CObjShelter();
+//NameToVertex names;
 
+//---------------------------------------------------------------
+// Graph%
+
+/***
+NEWFRGRAPH ( -- n = n is the graph identifier )
+use:
+newfrgraph constant frgraph
+where frgraph contains the id of the generated graph.
+***/
+int CPP_GR_newfrgraph(){
+  CObjFRUG fr = CObjFRUG();
+  s.vec.push_back( fr );
+  int id = fr.get_id();
+  PUSH_IVAL( id )
+
+    return 0;
+}
+
+int CPP_GR_privet(){ //GR_test_privet(){
+//PUSH_IVAL( 1 );
+    cout << "CPP_GR_privet:test privet" << endl;
+return 0;
+}
+
+/***
+NEWUGRAPH ( -- n = n is the graph identifier )
+use:
+newugraph constant mygraph
+where mygraph contains the id of the generated graph 
+***/
+int CPP_GR_newugraph(){
+//  CObjUG ug = CObjUG();
+//  s.vec.push_back( ug );
+//  int id = ug.get_id();
+//  PUSH_IVAL( id )
+    
+    return 0;
+}
+
+
+/**
+UGADDEDGE( v1 v2 id -- )
+use:
+1 2 mygraph ugaddedge
+***/
+int CPP_GR_addedge(){
+  DROP
+    if (GlobalSp > BottomOfStack)
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;  // id
+//DROP
+//    if (GlobalSp > BottomOfStack)
+//      return E_V_STK_UNDERFLOW;
+//  int w = TOS;  // weight
+  DROP
+    if (GlobalSp > BottomOfStack)
+      return E_V_STK_UNDERFLOW;
+  int v2 = TOS;  //to
+  DROP
+    if (GlobalSp > BottomOfStack)
+      return E_V_STK_UNDERFLOW;
+  int v1 = TOS; // from
+  int cur_id;
+  std::string source( std::to_string(v1) );
+  std::string target( std::to_string(v2) );
+  CObjFRUG* pfr; // cofr;
+  CObjUG* pug;
+  int res;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "addedge type 1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      cout << "addedge type UGR" << ", n=" << n;
+      cur_id = static_cast<const CObjUG&>(*item).get_id();
+      cout << ", cur_id=" << cur_id << endl;
+      if ( n == cur_id ){
+	cout <<"add edge in ugraph id = " << cur_id << endl;
+//<---->coug = static_cast<const CObjUG&>(*item);
+// res = (int)coug.ug_addedge( v1, v2 );
+	pug = &(dynamic_cast<CObjUG&>(*item));
+	if (pug){
+	  pug->ug_addedge( v1, v2 );
+	  pug->DoSomething();
+	}else{
+	  cout << "addedge: error dynamic cast to UG" << endl;
+	}
+      }
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "addedge type FRUG" << ", id n= " << n;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+      cout << ", cur_id=" << cur_id << endl;
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  pfr->ug_addedge( v1, v2 );
+	}else{
+	  cout << "addedge: error dynamic cast to FRG" << endl;
+	}
+      }
+      break;
+    case OBJ_TYPE::INVALID:
+      cout << "INVALID" << endl;
+    default:
+      // error log
+      break;
+    }
+  }
+  return 0;
+}
+
+
+/***
+CLEARUGRAPH ( n -- = n is the graph identifier )
+use:
+mygraph clearugraph
+***/
+int CPP_GR_clearugraph(){
+  DROP
+    if (GlobalSp > BottomOfStack)
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int cur_id;
+  CObjFRUG* pfr;
+  CObjUG* pug;
+  //const FR_UGraph ug;
+  //const CObjFRUG* pfr;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      cout << "type ObjUGR = " << (int) OBJ_TYPE::UGR << endl;
+      cur_id = static_cast<const CObjUG&>(*item).get_id();
+      cout << "CObjUG id = " << cur_id << endl;
+//      ug = static_cast<const CObjUG&>(*item);
+      if ( n == cur_id ){
+	cout << "clear graph in graph id = " << cur_id << endl;
+	pug = &(dynamic_cast<CObjUG&>(*item));
+	if (pug){
+	  (*pug->get_graph()).clear();
+	}else{
+	  cout << "addedge: error dynamic cast to UG" << endl;
+	}
+
+      }
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+//      fr = static_cast<const CObjFRUG&>(*item);
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  (*pfr->get_graph()).clear();
+	}else{
+	  cout << "ugclear: error dynamic cast to FRG" << endl;
+	}
+      }
+      break;
+    case OBJ_TYPE::INVALID:
+      cout << "INVALID" << endl;
+    default:
+      // error log
+      break;
+    }
+  }
+  
+return 0;
+}
+
+/***
+TYPEUGRAPH ( n -- = n is the graph identifier )
+use:
+mygraph typeugraph
+***/
+int CPP_GR_typeugraph(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int cur_id;
+  //CObjFRUG* pfr;
+  CObjUG* pug;
+const CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      cout << "type ObjUGR = " << (int) OBJ_TYPE::UGR << "{" << endl;
+      cur_id = static_cast<const CObjUG&>(*item).get_id();
+      cout << "CObjUG id = " << cur_id << ", show"<< endl;
+//      ug = static_cast<const CObjUG&>(*item);
+      if ( n == cur_id ){
+	cout << "UGraph in CObjGraph id = " << cur_id << endl;
+	pug = &(dynamic_cast<CObjUG&>(*item));
+	if (pug){
+	  std::pair<edge_iterator, edge_iterator> ei = edges(*pug->get_graph());
+	  cout << "Number of edges = " << boost::num_edges(*pug->get_graph()) << endl;
+	  cout << "Edge list: " << endl;
+	  for ( edge_iterator it = ei.first; it != ei.second; ++it ){
+	    cout << *it << endl;
+	  }
+	  cout << "Number of vertices = " << (int)boost::num_vertices(*pug->get_graph()) << endl;
+	  boost::write_graphviz( std::cout, *pug->get_graph());
+	}else{
+	  cout << "ugclear: error dynamic cast to UG" << endl;
+	}
+      }      
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+
+	pfr = &(dynamic_cast<const CObjFRUG&>(*item));
+	if (pfr){
+	  cout << "FRUGraph in COBjFRUG id = " << cur_id << endl;
+	  std::pair<fr_edge_iterator, fr_edge_iterator> ei = boost::edges(*pfr->get_graph());
+	  cout << "Number of edges = " << boost::num_edges(*pfr->get_graph()) << endl;
+	  cout << "Edge list: " << endl;
+	  for ( fr_edge_iterator it = ei.first; it != ei.second; ++it ){
+	    cout << *it << it->m_source << ", " << it->m_target << endl;
+	  }
+	  cout << "Number of vertices = " << (int)boost::num_vertices(*pfr->get_graph()) << endl;
+	  boost::write_graphviz( std::cout, *pfr->get_graph());
+	}else{
+	  cout << "typeugraph: error dynamic cast" << endl;
+	}
+      }      
+      cout << "}" << endl;      
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    } //swtch
+  } //for
+    return 0;
+}
+
+int CPP_GR_setugraph(){
+return 0;
+}
+
+/***
+GETNUMVERTICES ( nid -- n )
+use:
+fr-graph-name getnumvertices ( -- n = number vertices )
+***/
+int CPP_GR_get_num_vertices(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int nv;
+  int cur_id;
+  CObjFRUG* pfr;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  nv = pfr->get_num_vertices();
+	  PUSH_IVAL( nv )
+	    }else{
+	  cout << "get_num_vertices error dynamic cast" << endl;
+	}
+      }	  
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGSETFRAME ( w h  nid -- )
+use:
+w h fr-graph-name ugsetframe ( -- )
+***/
+int CPP_GR_setframe(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int h = TOS;
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int w = TOS;
+  int cur_id;
+//  CObjFRUG fr;
+  CObjFRUG *pfr;
+
+  for ( /*const*/ auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+
+    case OBJ_TYPE::FRUGR:
+      cout << "setframe: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	//fr = static_cast<CObjFRUG&>(*item);
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+// I can use dynamic or static cast
+//	pfr = &(static_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  cout << "setframe: w = " << w << ", h = " << h << endl;
+//	static_cast<CObjFRUG&>(*item).DoSomething();
+	  pfr->setframe( w, h );
+	  cout << "show frame w = " << *pfr->fwidth() << ", h = " << *pfr->fheight() << endl;
+	}else{
+	  cout << "setframe: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGSETITER ( n  nid -- )
+use:
+w h fr-graph-name ugsetiter ( -- )
+***/
+int CPP_GR_setiter(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int niter = TOS;
+
+  int cur_id;
+  CObjFRUG *pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "setiter: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  pfr->setiteration( niter );
+	}else{
+	  cout << "setiter: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGFORCELAYOUT ( nid -- )
+use:
+fr-graph-name ugforcelayout ( -- )
+***/
+int CPP_GR_force_layout(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+
+  int cur_id;
+  CObjFRUG *pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "force_layout: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  pfr->fr_force_layout( );
+	}else{
+	  cout << "force_layout: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGINITVI ( nid -- )
+use:
+fr-graph-name uginitvi ( -- )
+***/
+int CPP_GR_init_vi(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+
+  int cur_id;
+  CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "init_vi: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  pfr->init_vertex_iterator( );
+	}else{
+	  cout << "init_vi: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGNEXTVI ( nid -- )
+use:
+fr-graph-name ugnextvi ( -- )
+***/
+int CPP_GR_next_vi(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+
+  int cur_id;
+  CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "next_vi: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  pfr->next_vi( );
+	}else{
+	  cout << "next_vi: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGPVPOS ( nid -- x y )
+use:
+fr-graph-name ugvpos ( x y -- )
+***/
+int CPP_GR_vpos(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int x, y;
+  int cur_id;
+  CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "vpos: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+//	  pfr->next_vi( );
+	  PUSH_IVAL( pfr->get_vpos_y() )
+	    PUSH_IVAL( pfr->get_vpos_x() )
+	    }else{
+	  cout << "vpos: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGINITEI ( nid -- )
+use:
+fr-graph-name uginitei ( -- )
+***/
+int CPP_GR_init_ei(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+
+  int cur_id;
+  CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "init_ei: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  pfr->init_edge_iterator( );
+	}else{
+	  cout << "init_ei: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGNEXTEI ( nid -- )
+use:
+fr-graph-name ugnextei ( -- )
+***/
+int CPP_GR_next_ei(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+
+  int cur_id;
+  CObjFRUG* pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "next_ei: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  pfr->next_eit( );
+	}else{
+	  cout << "next_ei: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+GETNUMEDGES ( nid -- n )
+use:
+fr-graph-name getnumedges ( -- n = number edges )
+***/
+int CPP_GR_get_num_edges(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int ne;
+  int cur_id;
+  CObjFRUG* pfr;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  ne = pfr->get_num_edges();
+	  PUSH_IVAL( ne )
+	    }else{
+	  cout << "get_num_edges error dynamic cast" << endl;
+	}
+      }	  
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+GETSRCVPOS ( nid -- n )
+use:
+fr-graph-name getsrcvpos ( -- n = x y coordinates source edge )
+***/
+int CPP_GR_get_src_vpos(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int x, y;
+  int cur_id;
+  CObjFRUG* pfr;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+//cout << "get_src_vpos start" << endl;
+
+	  x = pfr->get_vpos_srcx();
+	  y = pfr->get_vpos_srcy();
+//cout << "src x=" << x << "src_y=" << y << endl;
+	  PUSH_IVAL( x )
+	    PUSH_IVAL( y )
+	    }else{
+	  cout << "get_src_vpos error dynamic cast" << endl;
+	}
+      }	  
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+GETTRGVPOS ( nid -- n )
+use:
+fr-graph-name gettrgvpos ( -- n = x y coordinates target edge )
+***/
+int CPP_GR_get_trg_vpos(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+  int x, y;
+  int cur_id;
+  CObjFRUG* pfr;
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cout << "type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << " {" << endl;
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if (pfr){
+	  x = pfr->get_vpos_trgx();
+	  y = pfr->get_vpos_trgy();
+	  PUSH_IVAL( x )
+	    PUSH_IVAL( y )
+	    }else{
+	  cout << "get_trg_vpos error dynamic cast" << endl;
+	}
+      }	  
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+
+
+
+/***
+UGWIDTH ( nid -- w )
+use:
+fr-graph-name ugwidth ( w -- )
+***/
+int CPP_GR_width(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+double w;
+  int cur_id;
+   CObjFRUG *pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+      cout << "width: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << ", id="<< cur_id << " {" << endl;
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  w = *pfr->fwidth();
+	  PUSH_IVAL( w )
+	    }else{
+	  cout << "width: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+/***
+UGWIDTH ( nid -- w )
+use:
+fr-graph-name ugwidth ( w -- )
+***/
+int CPP_GR_height(){
+  DROP
+    if (GlobalSp > BottomOfStack) 
+      return E_V_STK_UNDERFLOW;
+  int n = TOS;
+double h;
+  int cur_id;
+   CObjFRUG *pfr;
+
+  for ( auto& item : s.vec ){
+    switch( item->ObjType()){
+    case OBJ_TYPE::TYPE1:
+      cout << "type1" << endl;
+      break;
+    case OBJ_TYPE::UGR:
+      break;
+    case OBJ_TYPE::FRUGR:
+      cur_id = static_cast<const CObjFRUG&>(*item).get_id();
+      cout << "width: type ObjFRGR = " << (int)OBJ_TYPE::FRUGR << ", id="<< cur_id << " {" << endl;
+
+      if ( n == cur_id ){
+	pfr = &(dynamic_cast<CObjFRUG&>(*item));
+	if ( pfr ){
+	  h = *pfr->fheight();
+	  PUSH_IVAL( h )
+	    }else{
+	  cout << "height: error dynamic cast" << endl;
+	}
+      }
+      cout << "}" << endl;
+      break;
+    case OBJ_TYPE::INVALID:
+    default:
+      break;
+    }
+  }
+return 0;
+}
+
+//---------------------------------------------------------------
 // COLD  ( -- )
 // Restart the Forth environment
 // Non-standard, appeared in LMI UR/Forth 
@@ -2875,6 +3824,13 @@ int CPP_kf64privet(){
     cout << "Privet from kf64" << endl;
     return 0;
 }
+
+// int CPP_kf64_newgraph(){
+
+//	return 0;
+// }
+
+
 
 void dump_return_stack()  // for debugging purposes
 {

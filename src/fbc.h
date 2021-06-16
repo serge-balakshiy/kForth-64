@@ -420,17 +420,47 @@
 #define OP_MSLASH_FLOORED       415
 #define OP_MSTARSLASH_FLOORED   416
 
-#define OP_KF64PRIVET		417
-#define OP_GPRIVET		418
-#define OP_GLLSHOW		419
+#define OP_GR_TESTPRIVET        417
 
-#define OP_CPP_G_KF64ROTATE	420
-#define OP_CPP_G_KF64UPDATE	421
-#define OP_CPP_G_KF64GETCELL	422
-#define OP_CPP_G_KF64SETCELL	423
+#define OP_GPRIVET              418
+#define OP_GLLSHOW              419
 
-#define OP_CPP_G_KF64GETCURSOR	424
-#define OP_CPP_G_KF64GETEVENT	425
-#define OP_CPP_G_KF64GETXY	426
+#define OP_CPP_G_KF64ROTATE     420
+#define OP_CPP_G_KF64UPDATE     421
+#define OP_CPP_G_KF64GETCELL    422
+#define OP_CPP_G_KF64SETCELL    423
+
+#define OP_CPP_G_KF64GETCURSOR  424
+#define OP_CPP_G_KF64GETEVENT   425
+#define OP_CPP_G_KF64GETXY      426
+#define OP_KF64PRIVET           427
+
+#define OP_GR_NEWFRGRAPH        428
+#define OP_GR_NEWUGRAPH         429
+#define OP_GR_ADDEDGE           430
+#define OP_GR_CLEARUGRAPH       431
+
+#define OP_GR_TYPEUGRAPH        432
+#define OP_GR_GETNUMVERTICES    433
+#define OP_GR_SETFRAME          434
+#define OP_GR_SETITER           435
+
+#define OP_GR_FORCELAYOUT        436
+#define OP_GR_INITVI             437
+#define OP_GR_NEXTVI             438
+#define OP_GR_VPOS               439
+
+#define OP_GR_WIDTH              440
+#define OP_GR_HEIGHT             441
+#define OP_GR_INITEI            442
+#define OP_GR_NEXTEI            443
+
+#define OP_GR_GETNUMEDGES       444
+#define OP_GR_GETSRCVPOS        445
+#define OP_GR_GETTRGVPOS        446
+
+
+
+
 
 #endif

@@ -126,7 +126,7 @@ JumpTable: .quad L_false, L_true, L_cells, L_cellplus # 0 -- 3
            .quad L_nop, L_nop, L_nop, CPP_myname       # 352--355
            .quad L_nop, L_nop, C_used, L_nop           # 356--359
            .quad L_precision, L_setprecision, L_nop, CPP_fsdot   # 360--363
-           .quad L_nop, L_nop, C_fexpm1, C_flnp1	    # 364--367
+           .quad L_nop, L_nop, C_fexpm1, C_flnp1    # 364--367
            .quad CPP_uddotr, CPP_ddotr, L_f2drop, L_f2dup   # 368--371
            .quad L_nop, L_nop, L_nop, L_nop                 # 372--375
            .quad L_nop, L_nop, L_nop, L_nop                 # 376--379
@@ -138,13 +138,19 @@ JumpTable: .quad L_false, L_true, L_cells, L_cellplus # 0 -- 3
            .quad L_bool_not, L_bool_and, L_bool_or, L_bool_xor  # 400--403 
            .quad L_boolean_query, L_uwfetch, L_ulfetch, L_slfetch  # 404--407
            .quad L_lstore, L_nop, L_nop, L_nop                  # 408--411
-	   .quad L_lstore, L_nop, L_nop, L_nop                  # 412--415
-	   .quad L_nop, CPP_kf64privet, CPP_gprivet, CPP_gllshow   # 416--419
-	   .quad CPP_G_kf64rotate, CPP_G_kf64update, CPP_G_kf64getcell, CPP_G_kf64setcell # 420--423
-	   .quad CPP_G_kf64getcursor, CPP_G_kf64getevent, CPP_G_kf64getxy, L_nop # 424--427
-	   .quad L_nop, L_nop, L_nop, L_nop # 428--431
+   .quad L_nop, L_nop, L_nop, L_nop                  # 412--415
+   .quad L_nop, CPP_GR_privet, CPP_gprivet, CPP_gllshow   # 416--419
+   .quad CPP_G_kf64rotate, CPP_G_kf64update, CPP_G_kf64getcell, CPP_G_kf64setcell # 420--423
+   .quad CPP_G_kf64getcursor, CPP_G_kf64getevent, CPP_G_kf64getxy, CPP_kf64privet # 424--427
+   .quad CPP_GR_newfrgraph, CPP_GR_newugraph, CPP_GR_addedge, CPP_GR_clearugraph # 428--431
+    .quad CPP_GR_typeugraph, CPP_GR_get_num_vertices, CPP_GR_setframe, CPP_GR_setiter # 432--435
+    .quad CPP_GR_force_layout, CPP_GR_init_vi, CPP_GR_next_vi, CPP_GR_vpos # 436--439
+    .quad CPP_GR_width, CPP_GR_height, CPP_GR_init_ei, CPP_GR_next_ei # 440--443
+    .quad CPP_GR_get_num_edges, CPP_GR_get_src_vpos, CPP_GR_get_trg_vpos, L_nop # 444--447
+           .quad L_nop, L_nop, L_nop, L_nop                 # 448--451
+           .quad L_nop, L_nop, L_nop, L_nop                 # 452--455
 .text
-	.align WSIZE
+        .align WSIZE
 .global JumpTable
 .global L_initfpu, L_depth, L_quit, L_abort, L_ret
 .global L_dabs, L_dplus, L_dminus, L_dnegate

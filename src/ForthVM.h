@@ -140,6 +140,29 @@ int CPP_state();
 int CPP_spstore();
 int CPP_rpstore();
 int CPP_kf64privet(); //возможно это был источник ошибки
+int CPP_GR_newfrgraph();
+int CPP_GR_privet();
+int CPP_GR_newugraph();
+int CPP_GR_addedge();
+int CPP_GR_clearugraph();
+int CPP_GR_typeugraph();
+int CPP_GR_setugraph();
+int CPP_GR_get_num_vertices();
+int CPP_GR_setframe();
+int CPP_GR_setiter();
+int CPP_GR_force_layout();
+int CPP_GR_init_vi();
+int CPP_GR_next_vi();
+int CPP_GR_vpos();
+int CPP_GR_init_ei();
+int CPP_GR_next_ei();
+int CPP_GR_get_num_edges();
+int CPP_GR_get_src_vpos();
+int CPP_GR_get_trg_vpos();
+
+int CPP_GR_width();
+int CPP_GR_height();
+
 }
 #endif
 

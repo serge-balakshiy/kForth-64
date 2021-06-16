@@ -44,7 +44,7 @@ size_t NUMBER_OF_INTRINSIC_WORDS =
    sizeof(ForthWords) / sizeof(ForthWords[0]);
 
 
-extern bool debug;
+extern bool debug; // = true;
 
 // Provided by ForthVM.cpp
 
